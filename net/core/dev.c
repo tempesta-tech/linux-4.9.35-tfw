@@ -3863,6 +3863,28 @@ int netif_rx_ni(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(netif_rx_ni);
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+#include <linux/tempesta.h>
+
+static TempestaTxAction __rcu tempesta_tx_action = NULL;
+
+void
+tempesta_set_tx_action(TempestaTxAction action)
+{
+	rcu_assign_pointer(tempesta_tx_action, action);
+}
+EXPORT_SYMBOL(tempesta_set_tx_action);
+
+void
+tempesta_del_tx_action(void)
+{
+	rcu_assign_pointer(tempesta_tx_action, NULL);
+	synchronize_rcu();
+}
+EXPORT_SYMBOL(tempesta_del_tx_action);
+#endif
+
+
 static __latent_entropy void net_tx_action(struct softirq_action *h)
 {
 	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
@@ -3893,6 +3915,20 @@ static __latent_entropy void net_tx_action(struct softirq_action *h)
 
 		__kfree_skb_flush();
 	}
+
+#ifdef CONFIG_SECURITY_TEMPESTA
+	{
+		TempestaTxAction action;
+
+		rcu_read_lock();
+
+		action = rcu_dereference(tempesta_tx_action);
+		if (likely(action))
+			action();
+
+		rcu_read_unlock();
+	}
+#endif
 
 	if (sd->output_queue) {
 		struct Qdisc *head;
@@ -4655,7 +4691,12 @@ static gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 	case GRO_MERGED_FREE:
 		if (NAPI_GRO_CB(skb)->free == NAPI_GRO_FREE_STOLEN_HEAD) {
 			skb_dst_drop(skb);
-			kmem_cache_free(skbuff_head_cache, skb);
+#ifdef CONFIG_SECURITY_TEMPESTA
+			if (skb->skb_page)
+				put_page(virt_to_page(skb));
+			else
+#endif
+				kmem_cache_free(skbuff_head_cache, skb);
 		} else {
 			__kfree_skb(skb);
 		}

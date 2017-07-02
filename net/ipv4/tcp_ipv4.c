@@ -62,6 +62,7 @@
 #include <linux/init.h>
 #include <linux/times.h>
 #include <linux/slab.h>
+#include <linux/tempesta.h>
 
 #include <net/net_namespace.h>
 #include <net/icmp.h>
@@ -155,8 +156,7 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 		return -EAFNOSUPPORT;
 
 	nexthop = daddr = usin->sin_addr.s_addr;
-	inet_opt = rcu_dereference_protected(inet->inet_opt,
-					     lockdep_sock_is_held(sk));
+	inet_opt = rcu_dereference_raw(inet->inet_opt);
 	if (inet_opt && inet_opt->opt.srr) {
 		if (!daddr)
 			return -EINVAL;
@@ -894,8 +894,7 @@ struct tcp_md5sig_key *tcp_md5_do_lookup(const struct sock *sk,
 	const struct tcp_md5sig_info *md5sig;
 
 	/* caller either holds rcu_read_lock() or socket lock */
-	md5sig = rcu_dereference_check(tp->md5sig_info,
-				       lockdep_sock_is_held(sk));
+	md5sig = rcu_dereference_raw(tp->md5sig_info);
 	if (!md5sig)
 		return NULL;
 #if IS_ENABLED(CONFIG_IPV6)
@@ -1343,6 +1342,14 @@ struct sock *tcp_v4_syn_recv_sock(const struct sock *sk, struct sk_buff *skb,
 	}
 #endif
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+	/*
+	 * We need already initialized socket addresses,
+	 * so there is no appropriate security hook.
+	 */
+	if (tempesta_new_clntsk(newsk))
+		goto put_and_exit;
+#endif
 	if (__inet_inherit_port(sk, newsk) < 0)
 		goto put_and_exit;
 	*own_req = inet_ehash_nolisten(newsk, req_to_sk(req_unhash));
@@ -1709,7 +1716,16 @@ process:
 
 	sk_incoming_cpu_update(sk);
 
+#ifdef CONFIG_SECURITY_TEMPESTA
+	/*
+	 * The socket is just retrieved by __inet_lookup_skb(), so there is
+	 * no real nested locking yet. Leave the nested locking possiblity to
+	 * Tempesta.
+	 */
+	bh_lock_sock(sk);
+#else
 	bh_lock_sock_nested(sk);
+#endif
 	tcp_segs_in(tcp_sk(sk), skb);
 	ret = 0;
 	if (!sock_owned_by_user(sk)) {

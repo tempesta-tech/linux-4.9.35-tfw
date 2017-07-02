@@ -652,8 +652,12 @@ struct sk_buff {
 	 * layer. Please put your private variables there. If you
 	 * want to keep them across layers you have to do a skb_clone()
 	 * first. This is owned by whoever has the skb queued ATM.
+	 *
+	 * Tempesta. Extend the control block from original 48 bytes to
+	 * 64, so we can place our own control block at the end of @cb
+	 * and safely pass the skb to TCP and IP layers.
 	 */
-	char			cb[48] __aligned(8);
+	char			cb[64] __aligned(8);
 
 	unsigned long		_skb_refdst;
 	void			(*destructor)(struct sk_buff *skb);
@@ -691,8 +695,10 @@ struct sk_buff {
 				fclone:2,
 				peeked:1,
 				head_frag:1,
-				xmit_more:1,
-				__unused:1; /* one bit hole */
+#ifdef CONFIG_SECURITY_TEMPESTA
+				skb_page:1,
+#endif
+				xmit_more:1;
 	kmemcheck_bitfield_end(flags1);
 
 	/* fields enclosed in headers_start/headers_end are copied
@@ -711,6 +717,7 @@ struct sk_buff {
 #define PKT_TYPE_OFFSET()	offsetof(struct sk_buff, __pkt_type_offset)
 
 	__u8			__pkt_type_offset[0];
+	kmemcheck_bitfield_begin(flags2);
 	__u8			pkt_type:3;
 	__u8			pfmemalloc:1;
 	__u8			ignore_df:1;
@@ -742,7 +749,10 @@ struct sk_buff {
 #ifdef CONFIG_NET_SWITCHDEV
 	__u8			offload_fwd_mark:1;
 #endif
-	/* 2, 4 or 5 bit hole */
+	/* 1, 3 or 4 bit hole */
+#ifdef CONFIG_SECURITY_TEMPESTA
+	__u8			tail_lock:1;
+#endif
 
 #ifdef CONFIG_NET_SCHED
 	__u16			tc_index;	/* traffic control index */
@@ -1791,7 +1801,11 @@ static inline struct sk_buff *__skb_dequeue_tail(struct sk_buff_head *list)
 
 static inline bool skb_is_nonlinear(const struct sk_buff *skb)
 {
+#ifdef CONFIG_SECURITY_TEMPESTA
+	return skb->tail_lock || skb->data_len;
+#else
 	return skb->data_len;
+#endif
 }
 
 static inline unsigned int skb_headlen(const struct sk_buff *skb)
@@ -1976,6 +1990,20 @@ static inline unsigned int skb_headroom(const struct sk_buff *skb)
 {
 	return skb->data - skb->head;
 }
+
+#ifdef CONFIG_SECURITY_TEMPESTA
+/**
+ *	skb_tailroom_locked - bytes at buffer end
+ *	@skb: buffer to check
+ *
+ *	Return the number of bytes of free space at the tail of an sk_buff with
+ *	respect to tail locking only.
+ */
+static inline int skb_tailroom_locked(const struct sk_buff *skb)
+{
+	return skb->tail_lock ? 0 : skb->end - skb->tail;
+}
+#endif
 
 /**
  *	skb_tailroom - bytes at buffer end
@@ -3872,6 +3900,30 @@ static inline __wsum lco_csum(struct sk_buff *skb)
 	 */
 	return csum_partial(l4_hdr, csum_start - l4_hdr, partial);
 }
+
+#ifdef CONFIG_SECURITY_TEMPESTA
+/*
+ * ------------------------------------------------------------------------
+ * 		Tempesta FW
+ * ------------------------------------------------------------------------
+ */
+/*
+ * We use this additional skb list to be able to reference skbs which are
+ * processed by standard Linux TCP/IP stack w/o skb cloning.
+ */
+typedef struct {
+	struct sk_buff	*next;
+	struct sk_buff	*prev;
+} SsSkbCb;
+
+#define TFW_SKB_CB(s)		((SsSkbCb *)((s)->cb + sizeof((s)->cb)	\
+						      - sizeof(SsSkbCb)))
+#define TFW_SKB_CB_INIT(skb)						\
+do {									\
+	TFW_SKB_CB(skb)->prev = NULL;					\
+	TFW_SKB_CB(skb)->next = NULL;					\
+} while (0)
+#endif  /* CONFIG_SECURITY_TEMPESTA */
 
 #endif	/* __KERNEL__ */
 #endif	/* _LINUX_SKBUFF_H */

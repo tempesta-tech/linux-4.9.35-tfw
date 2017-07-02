@@ -592,11 +592,12 @@ int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 }
 EXPORT_SYMBOL(tcp_ioctl);
 
-static inline void tcp_mark_push(struct tcp_sock *tp, struct sk_buff *skb)
+void tcp_mark_push(struct tcp_sock *tp, struct sk_buff *skb)
 {
 	TCP_SKB_CB(skb)->tcp_flags |= TCPHDR_PSH;
 	tp->pushed_seq = tp->write_seq;
 }
+EXPORT_SYMBOL(tcp_mark_push);
 
 static inline bool forced_push(const struct tcp_sock *tp)
 {
@@ -647,8 +648,8 @@ static bool tcp_should_autocork(struct sock *sk, struct sk_buff *skb,
 	       atomic_read(&sk->sk_wmem_alloc) > skb->truesize;
 }
 
-static void tcp_push(struct sock *sk, int flags, int mss_now,
-		     int nonagle, int size_goal)
+void tcp_push(struct sock *sk, int flags, int mss_now, int nonagle,
+	      int size_goal)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *skb;
@@ -681,6 +682,7 @@ static void tcp_push(struct sock *sk, int flags, int mss_now,
 
 	__tcp_push_pending_frames(sk, mss_now, nonagle);
 }
+EXPORT_SYMBOL(tcp_push);
 
 static int tcp_splice_data_recv(read_descriptor_t *rd_desc, struct sk_buff *skb,
 				unsigned int offset, size_t len)
@@ -871,7 +873,7 @@ static unsigned int tcp_xmit_size_goal(struct sock *sk, u32 mss_now,
 	return max(size_goal, mss_now);
 }
 
-static int tcp_send_mss(struct sock *sk, int *size_goal, int flags)
+int tcp_send_mss(struct sock *sk, int *size_goal, int flags)
 {
 	int mss_now;
 
@@ -880,6 +882,7 @@ static int tcp_send_mss(struct sock *sk, int *size_goal, int flags)
 
 	return mss_now;
 }
+EXPORT_SYMBOL(tcp_send_mss);
 
 static ssize_t do_tcp_sendpages(struct sock *sk, struct page *page, int offset,
 				size_t size, int flags)
@@ -1422,7 +1425,7 @@ static int tcp_peek_sndq(struct sock *sk, struct msghdr *msg, int len)
  * calculation of whether or not we must ACK for the sake of
  * a window update.
  */
-static void tcp_cleanup_rbuf(struct sock *sk, int copied)
+void tcp_cleanup_rbuf(struct sock *sk, int copied)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	bool time_to_ack = false;
@@ -1479,6 +1482,7 @@ static void tcp_cleanup_rbuf(struct sock *sk, int copied)
 	if (time_to_ack)
 		tcp_send_ack(sk);
 }
+EXPORT_SYMBOL(tcp_cleanup_rbuf);
 
 static void tcp_prequeue_process(struct sock *sk)
 {
@@ -2012,7 +2016,7 @@ static const unsigned char new_state[16] = {
   [TCP_NEW_SYN_RECV]	= TCP_CLOSE,	/* should not happen ! */
 };
 
-static int tcp_close_state(struct sock *sk)
+int tcp_close_state(struct sock *sk)
 {
 	int next = (int)new_state[sk->sk_state];
 	int ns = next & TCP_STATE_MASK;
@@ -2021,6 +2025,7 @@ static int tcp_close_state(struct sock *sk)
 
 	return next & TCP_ACTION_FIN;
 }
+EXPORT_SYMBOL(tcp_close_state);
 
 /*
  *	Shutdown the sending side of a connection. Much like close except
@@ -2060,6 +2065,7 @@ bool tcp_check_oom(struct sock *sk, int shift)
 		net_info_ratelimited("out of memory -- consider tuning tcp_mem\n");
 	return too_many_orphans || out_of_socket_memory;
 }
+EXPORT_SYMBOL(tcp_check_oom);
 
 void tcp_close(struct sock *sk, long timeout)
 {

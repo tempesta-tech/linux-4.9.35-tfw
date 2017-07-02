@@ -4051,6 +4051,11 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 
 	tdfx=		[HW,DRM]
 
+	tempesta_dbmem=	[KNL]
+			Order of 2MB memory blocks reserved on each NUMA node
+			for Tempesta database. Huge pages are used if
+			possible.
+
 	test_suspend=	[SUSPEND][,N]
 			Specify "mem" (for Suspend-to-RAM) or "standby" (for
 			standby suspend) or "freeze" (for suspend type freeze)
