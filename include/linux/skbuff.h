@@ -753,6 +753,7 @@ struct sk_buff {
 #ifdef CONFIG_SECURITY_TEMPESTA
 	__u8			tail_lock:1;
 #endif
+	kmemcheck_bitfield_end(flags2);
 
 #ifdef CONFIG_NET_SCHED
 	__u16			tc_index;	/* traffic control index */
