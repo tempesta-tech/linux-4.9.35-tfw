@@ -1716,16 +1716,7 @@ process:
 
 	sk_incoming_cpu_update(sk);
 
-#ifdef CONFIG_SECURITY_TEMPESTA
-	/*
-	 * The socket is just retrieved by __inet_lookup_skb(), so there is
-	 * no real nested locking yet. Leave the nested locking possiblity to
-	 * Tempesta.
-	 */
-	bh_lock_sock(sk);
-#else
 	bh_lock_sock_nested(sk);
-#endif
 	tcp_segs_in(tcp_sk(sk), skb);
 	ret = 0;
 	if (!sock_owned_by_user(sk)) {
