@@ -26,7 +26,7 @@
 #include "internal.h"
 
 #define MAX_PGORDER		16	/* 128GB per one table */
-#define MIN_PGORDER		0	/* 2MB - one extent */
+#define MIN_PGORDER		4	/* 32MB */
 #define DEFAULT_PGORDER		8	/* 512MB */
 /* Modern processors support up to 1.5TB of RAM, be ready for 2TB. */
 #define GREEDY_ARNUM		(1024 * 1024 + 1)

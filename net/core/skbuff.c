@@ -283,9 +283,9 @@ do {									\
 	/*
 	 * Don't try to split compound page.
 	 * TODO compound pages can be split as __alloc_page_frag() does it
-	 * using fragment size in page reference counter. However, it seems
-	 * the workflow is quite rare, in fact we've never seen large @size
-	 * in calls of the function.
+	 * using fragment size in page reference counter. Large messages
+	 * (e.g. large HTML pages returned by a backend server) go this way
+	 * and allocate compound pages.
 	 */
 	if (po)
 		return ptr;
