@@ -157,7 +157,7 @@ out:
 #else
 /*
  * Chunks of size 512B, 1KB and 2KB.
- * Typical sk_buff requires ~248B or ~504B (for fclone),
+ * Typical sk_buff requires ~272B or ~552B (for fclone),
  * skb_shared_info is ~320B.
  */
 #define PG_LISTS_N		3
@@ -273,21 +273,26 @@ do {									\
 
 	PREEMPT_CTX_ENABLE();
 
-	/* Add compound page metadata, if page order is > 0. */
-	gfp_mask |= __GFP_NOWARN | __GFP_NOMEMALLOC | __GFP_NORETRY
-		    | (po ? __GFP_COMP : 0);
+	/*
+	 * Add compound page metadata, if page order is > 0.
+	 * Don't use __GFP_NOMEMALLOC to allow caller access reserved pools if
+	 * it requested so.
+	 */
+	gfp_mask |= __GFP_NOWARN | __GFP_NORETRY | (po ? __GFP_COMP : 0);
 	pg = alloc_pages_node(node, gfp_mask, po);
 	if (!pg)
 		return NULL;
 	ptr = (char *)page_address(pg);
 	/*
-	 * Don't try to split compound page.
+	 * Don't try to split compound page. Also don't try to reuse pages
+	 * from reserved memory areas making them putted and freed quicker.
+	 *
 	 * TODO compound pages can be split as __alloc_page_frag() does it
 	 * using fragment size in page reference counter. Large messages
 	 * (e.g. large HTML pages returned by a backend server) go this way
 	 * and allocate compound pages.
 	 */
-	if (po)
+	if (po || page_is_pfmemalloc(pg))
 		return ptr;
 	o = PAGE_SHIFT - PG_CHUNK_BITS;
 

@@ -614,6 +614,7 @@ extern void tcp_mark_push(struct tcp_sock *tp, struct sk_buff *skb);
 extern void tcp_init_nondata_skb(struct sk_buff *skb, u32 seq, u8 flags);
 extern void tcp_queue_skb(struct sock *sk, struct sk_buff *skb);
 extern int tcp_close_state(struct sock *sk);
+extern void skb_entail(struct sock *sk, struct sk_buff *skb);
 
 /* Read 'sendfile()'-style from a TCP socket */
 int tcp_read_sock(struct sock *sk, read_descriptor_t *desc,
