@@ -275,7 +275,7 @@ do {									\
 
 	/*
 	 * Add compound page metadata, if page order is > 0.
-	 * Don't use __GFP_NOMEMALLOC to allow caller access reserved pools if
+	 * Don't use __GFP_NOMEMALLOC to allow caller access to reserved pools if
 	 * it requested so.
 	 */
 	gfp_mask |= __GFP_NOWARN | __GFP_NORETRY | (po ? __GFP_COMP : 0);
@@ -285,7 +285,7 @@ do {									\
 	ptr = (char *)page_address(pg);
 	/*
 	 * Don't try to split compound page. Also don't try to reuse pages
-	 * from reserved memory areas making them putted and freed quicker.
+	 * from reserved memory areas to put and free them quicker.
 	 *
 	 * TODO compound pages can be split as __alloc_page_frag() does it
 	 * using fragment size in page reference counter. Large messages
