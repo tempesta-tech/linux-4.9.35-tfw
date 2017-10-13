@@ -604,7 +604,7 @@ static inline bool forced_push(const struct tcp_sock *tp)
 	return after(tp->write_seq, tp->pushed_seq + (tp->max_window >> 1));
 }
 
-static void skb_entail(struct sock *sk, struct sk_buff *skb)
+void skb_entail(struct sock *sk, struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct tcp_skb_cb *tcb = TCP_SKB_CB(skb);
@@ -622,6 +622,7 @@ static void skb_entail(struct sock *sk, struct sk_buff *skb)
 
 	tcp_slow_start_after_idle_check(sk);
 }
+EXPORT_SYMBOL(skb_entail);
 
 static inline void tcp_mark_urg(struct tcp_sock *tp, int flags)
 {
