@@ -613,7 +613,11 @@ void skb_entail(struct sock *sk, struct sk_buff *skb)
 	tcb->seq     = tcb->end_seq = tp->write_seq;
 	tcb->tcp_flags = TCPHDR_ACK;
 	tcb->sacked  = 0;
-	__skb_header_release(skb);
+	/*
+	 * fclones are possible here, so accurately update
+	 * skb_shinfo(skb)->dataref.
+	 */
+	skb_header_release(skb);
 	tcp_add_write_queue_tail(sk, skb);
 	sk->sk_wmem_queued += skb->truesize;
 	sk_mem_charge(sk, skb->truesize);
