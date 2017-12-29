@@ -322,37 +322,6 @@ assign_tail_chunks:
 }
 #endif
 
-/* 	Allocate a new skbuff. We do this ourselves so we can fill in a few
- *	'private' fields and also do memory statistics to find all the
- *	[BEEP] leaks.
- *
- */
-
-struct sk_buff *__alloc_skb_head(gfp_t gfp_mask, int node)
-{
-	struct sk_buff *skb;
-
-	/* Get the HEAD */
-	skb = kmem_cache_alloc_node(skbuff_head_cache,
-				    gfp_mask & ~__GFP_DMA, node);
-	if (!skb)
-		goto out;
-
-	/*
-	 * Only clear those fields we need to clear, not those that we will
-	 * actually initialise below. Hence, don't put any more fields after
-	 * the tail pointer in struct sk_buff!
-	 */
-	memset(skb, 0, offsetof(struct sk_buff, tail));
-	skb->head = NULL;
-	skb->truesize = sizeof(struct sk_buff);
-	atomic_set(&skb->users, 1);
-
-	skb->mac_header = (typeof(skb->mac_header))~0U;
-out:
-	return skb;
-}
-
 static void
 __alloc_skb_init(struct sk_buff *skb, u8 *data, unsigned int size,
 		 int flags, bool pfmemalloc)
@@ -1178,9 +1147,6 @@ static struct sk_buff *__skb_clone(struct sk_buff *n, struct sk_buff *skb)
 struct sk_buff *skb_morph(struct sk_buff *dst, struct sk_buff *src)
 {
 	skb_release_all(dst);
-#ifdef CONFIG_SECURITY_TEMPESTA
-	dst->skb_page = src->skb_page;
-#endif
 	return __skb_clone(dst, src);
 }
 EXPORT_SYMBOL_GPL(skb_morph);
@@ -4560,11 +4526,14 @@ void kfree_skb_partial(struct sk_buff *skb, bool head_stolen)
 	if (head_stolen) {
 		skb_release_head_state(skb);
 #ifdef CONFIG_SECURITY_TEMPESTA
-		if (skb->skb_page)
-			put_page(virt_to_page(skb));
-		else
+		/*
+		 * fclones are possible here with Tempesta due to using
+		 * pskb_copy_for_clone() in ss_send().
+		 */
+		kfree_skbmem(skb);
+#else
+		kmem_cache_free(skbuff_head_cache, skb);
 #endif
-			kmem_cache_free(skbuff_head_cache, skb);
 	} else {
 		__kfree_skb(skb);
 	}
@@ -5032,7 +5001,11 @@ static int pskb_carve_inside_header(struct sk_buff *skb, const u32 off,
 	if (skb_cloned(skb)) {
 		/* drop the old head gracefully */
 		if (skb_orphan_frags(skb, gfp_mask)) {
+#ifdef CONFIG_SECURITY_TEMPESTA
+			skb_free_frag(data);
+#else
 			kfree(data);
+#endif
 			return -ENOMEM;
 		}
 		for (i = 0; i < skb_shinfo(skb)->nr_frags; i++)
@@ -5049,7 +5022,11 @@ static int pskb_carve_inside_header(struct sk_buff *skb, const u32 off,
 
 	skb->head = data;
 	skb->data = data;
+#ifdef CONFIG_SECURITY_TEMPESTA
+	skb->head_frag = 1;
+#else
 	skb->head_frag = 0;
+#endif
 #ifdef NET_SKBUFF_DATA_USES_OFFSET
 	skb->end = size;
 #else
@@ -5156,7 +5133,11 @@ static int pskb_carve_inside_nonlinear(struct sk_buff *skb, const u32 off,
 	       skb_shinfo(skb), offsetof(struct skb_shared_info,
 					 frags[skb_shinfo(skb)->nr_frags]));
 	if (skb_orphan_frags(skb, gfp_mask)) {
+#ifdef CONFIG_SECURITY_TEMPESTA
+		skb_free_frag(data);
+#else
 		kfree(data);
+#endif
 		return -ENOMEM;
 	}
 	shinfo = (struct skb_shared_info *)(data + size);
@@ -5194,8 +5175,12 @@ static int pskb_carve_inside_nonlinear(struct sk_buff *skb, const u32 off,
 	skb_release_data(skb);
 
 	skb->head = data;
-	skb->head_frag = 0;
 	skb->data = data;
+#ifdef CONFIG_SECURITY_TEMPESTA
+	skb->head_frag = 1;
+#else
+	skb->head_frag = 0;
+#endif
 #ifdef NET_SKBUFF_DATA_USES_OFFSET
 	skb->end = size;
 #else
