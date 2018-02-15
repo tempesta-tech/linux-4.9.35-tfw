@@ -1,0 +1,44 @@
+Source: linux-4.9.35+
+Section: kernel
+Priority: optional
+Maintainer: Anonymous <root@vlad.lan>
+Build-Depends: bc, kmod, cpio 
+Standards-Version: 3.8.4
+Homepage: http://www.kernel.org/
+
+Package: linux-image-4.9.35-kdump+
+Provides: linux-image, linux-image-2.6, linux-modules-4.9.35-kdump+
+Suggests: linux-firmware-image-4.9.35-kdump+
+Architecture: any
+Description: Linux kernel, version 4.9.35-kdump+
+ This package contains the Linux kernel, modules and corresponding other
+ files, version: 4.9.35-kdump+.
+
+Package: linux-headers-4.9.35-kdump+
+Provides: linux-headers, linux-headers-2.6
+Architecture: any
+Description: Linux kernel headers for 4.9.35-kdump+ on ${kernel:debarch}
+ This package provides kernel header files for 4.9.35-kdump+ on ${kernel:debarch}
+ .
+ This is useful for people who need to build external modules
+
+Package: linux-firmware-image-4.9.35-kdump+
+Architecture: all
+Description: Linux kernel firmware, version 4.9.35-kdump+
+ This package contains firmware from the Linux kernel, version 4.9.35-kdump+.
+
+Package: linux-libc-dev
+Section: devel
+Provides: linux-kernel-headers
+Architecture: any
+Description: Linux support headers for userspace development
+ This package provides userspaces headers from the Linux kernel.  These headers
+ are used by the installed headers for GNU glibc and other system libraries.
+
+Package: linux-image-4.9.35-kdump+-dbg
+Section: debug
+Provides: linux-debug, linux-debug-4.9.35-kdump+
+Architecture: any
+Description: Linux kernel debugging symbols for 4.9.35-kdump+
+ This package will come in handy if you need to debug the kernel. It provides
+ all the necessary debug symbols for the kernel and its modules.

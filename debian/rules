@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+build:
+	$(MAKE)
+
+binary-arch:
+	$(MAKE) KDEB_SOURCENAME=linux-4.9.35+ KDEB_PKGVERSION=4.9.35+-$(shell cat debian/version) bindeb-pkg
+
+clean:
+	rm -rf debian/*tmp debian/files
+	mv debian/ debian.backup # debian/ might be cleaned away
+	$(MAKE) clean
+	mv debian.backup debian
+	debian/version_bump.sh
+
+binary: binary-arch

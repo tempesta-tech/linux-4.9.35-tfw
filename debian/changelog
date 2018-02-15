@@ -1,0 +1,5 @@
+linux-4.9.35+ (4.9.35+-master-5dd6e7d8) sid; urgency=low
+
+  * Custom built Linux kernel.
+
+ -- Anonymous <root@vlad.lan>  Thu, 15 Feb 2018 17:56:16 +0300

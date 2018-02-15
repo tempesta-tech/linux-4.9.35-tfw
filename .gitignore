@@ -52,10 +52,6 @@ Module.symvers
 /System.map
 /Module.markers
 
-#
-# Debian directory (make deb-pkg)
-#
-/debian/
 
 #
 # tar directory (make tar*-pkg)
