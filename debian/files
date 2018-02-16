@@ -1,6 +1,0 @@
-linux-4.9.35+_4.9.35+-master-5dd6e7d8_amd64.buildinfo kernel optional
-linux-firmware-image-4.9.35-kdump+_4.9.35+-master-5dd6e7d8_amd64.deb kernel optional
-linux-headers-4.9.35-kdump+_4.9.35+-master-5dd6e7d8_amd64.deb kernel optional
-linux-image-4.9.35-kdump+-dbg_4.9.35+-master-5dd6e7d8_amd64.deb debug optional
-linux-image-4.9.35-kdump+_4.9.35+-master-5dd6e7d8_amd64.deb kernel optional
-linux-libc-dev_4.9.35+-master-5dd6e7d8_amd64.deb devel optional
