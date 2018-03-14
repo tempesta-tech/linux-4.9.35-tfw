@@ -2689,9 +2689,19 @@ int __tcp_retransmit_skb(struct sock *sk, struct sk_buff *skb, int segs)
 		if (tcp_fragment(sk, skb, len, cur_mss, GFP_ATOMIC))
 			return -ENOMEM; /* We'll try again later. */
 	} else {
+		int delta_truesize = skb->truesize;
+
 		if (skb_unclone(skb, GFP_ATOMIC))
 			return -ENOMEM;
 
+		delta_truesize -= skb->truesize;
+		sk->sk_wmem_queued -= delta_truesize;
+		if (delta_truesize > 0) {
+			sk_mem_uncharge(sk, delta_truesize);
+			sock_set_flag(sk, SOCK_QUEUE_SHRUNK);
+		} else {
+			sk_mem_charge(sk, -delta_truesize);
+		}
 		diff = tcp_skb_pcount(skb);
 		tcp_set_skb_tso_segs(skb, cur_mss);
 		diff -= tcp_skb_pcount(skb);

@@ -1417,9 +1417,9 @@ EXPORT_SYMBOL(__pskb_copy_fclone);
 int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 		     gfp_t gfp_mask)
 {
-	int i;
+	int i, osize = skb_end_offset(skb);
 	u8 *data;
-	int size = nhead + skb_end_offset(skb) + ntail;
+	int size = osize + nhead + ntail;
 	long off;
 
 	BUG_ON(nhead < 0);
@@ -1494,6 +1494,10 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 	skb->hdr_len  = 0;
 	skb->nohdr    = 0;
 	atomic_set(&skb_shinfo(skb)->dataref, 1);
+
+	if (!skb->sk || skb->destructor == sock_edemux)
+		skb->truesize += size - osize;
+
 	return 0;
 
 nofrags:
