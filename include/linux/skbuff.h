@@ -652,12 +652,8 @@ struct sk_buff {
 	 * layer. Please put your private variables there. If you
 	 * want to keep them across layers you have to do a skb_clone()
 	 * first. This is owned by whoever has the skb queued ATM.
-	 *
-	 * Tempesta. Extend the control block from original 48 bytes to
-	 * 64, so we can place our own control block at the end of @cb
-	 * and safely pass the skb to TCP and IP layers.
 	 */
-	char			cb[64] __aligned(8);
+	char			cb[48] __aligned(8);
 
 	unsigned long		_skb_refdst;
 	void			(*destructor)(struct sk_buff *skb);
@@ -3895,30 +3891,6 @@ static inline __wsum lco_csum(struct sk_buff *skb)
 	 */
 	return csum_partial(l4_hdr, csum_start - l4_hdr, partial);
 }
-
-#ifdef CONFIG_SECURITY_TEMPESTA
-/*
- * ------------------------------------------------------------------------
- * 		Tempesta FW
- * ------------------------------------------------------------------------
- */
-/*
- * We use this additional skb list to be able to reference skbs which are
- * processed by standard Linux TCP/IP stack w/o skb cloning.
- */
-typedef struct {
-	struct sk_buff	*next;
-	struct sk_buff	*prev;
-} SsSkbCb;
-
-#define TFW_SKB_CB(s)		((SsSkbCb *)((s)->cb + sizeof((s)->cb)	\
-						      - sizeof(SsSkbCb)))
-#define TFW_SKB_CB_INIT(skb)						\
-do {									\
-	TFW_SKB_CB(skb)->prev = NULL;					\
-	TFW_SKB_CB(skb)->next = NULL;					\
-} while (0)
-#endif  /* CONFIG_SECURITY_TEMPESTA */
 
 #endif	/* __KERNEL__ */
 #endif	/* _LINUX_SKBUFF_H */

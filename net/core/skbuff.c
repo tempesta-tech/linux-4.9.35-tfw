@@ -1047,12 +1047,7 @@ static void __copy_skb_header(struct sk_buff *new, const struct sk_buff *old)
 	new->tstamp		= old->tstamp;
 	/* We do not copy old->sk */
 	new->dev		= old->dev;
-#ifdef CONFIG_SECURITY_TEMPESTA
-	memcpy(new->cb, old->cb, sizeof(old->cb) - sizeof(SsSkbCb));
-	TFW_SKB_CB_INIT(new);
-#else
 	memcpy(new->cb, old->cb, sizeof(old->cb));
-#endif
 	skb_dst_copy(new, old);
 #ifdef CONFIG_XFRM
 	new->sp			= secpath_get(old->sp);
